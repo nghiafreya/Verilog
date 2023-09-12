@@ -1,0 +1,76 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 08/09/2023 05:28:14 PM
+// Design Name: 
+// Module Name: mult2
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+
+module mult2 (
+  input  wire [3:0] a,
+  input  wire [3:0] b,
+  output wire [7:0] mult
+);
+    //create 4 partial products of b[0] * a, b[1] * a, b[2] * a, b[3] * a, 
+    wire [3:0] pp0 = a&b[0]; //a 4 bit number, which is the product of b[0] * a
+    wire [3:0] pp1 = a&b[1]; //a 4 bit number, which is the product of b[1] * a
+    wire [3:0] pp2 = a&b[2]; //a 4 bit number, which is the product of b[2] * a
+    wire [3:0] pp3 = a&b[3]; //a 4 bit number, which is the product of b[3] * a
+
+	//IDEA: WE WILL ADD pp0 TO pp1 and save the result in sum1, then add sum1 to pp2 and save the result in sum2, then add sum2 to pp3
+    
+    wire cout1, cout2, cout3;
+    wire [3:0] sum1, sum2, sum3;
+    
+    //create the sum of pp0 + pp1
+    add2 A0(pp1, {1'b0,pp0[3:1]}, 1'b0, cout1, sum1); // (pp1, {1'b0,pp0[3:1]} means add pp1 with 3 first characters of pp0, since the last character goes directly to the final consequence 
+    //write the carry in the cout1
+    
+    //create the sum of pp0 + pp1 (which is written as "sum1") and pp2
+    add2 A1(pp2, {cout1,pp1[3:1]}, 1'b0, cout2, sum2); //since the previous carry has already been in the argument ({cout1,pp1[3:1]}), we don't need to add it up in the psition of "cin" argument
+
+    //create the sum of pp0 + pp1 + pp2 (which is written as "sum2") and pp3
+    add2 A2(pp3, {cout2,pp2[3:1]}, 1'b0, cout3, sum3);
+    //now the remaining carry (which is cout3) will be in the most-left position of the final result, which is mult[7]
+    
+//now assign the above results to the final consequence
+    
+    assign mult = {cout3, sum3, sum2[0], sum1[0], pp1[0]};
+
+endmodule
+
+module add2	(input wire [3:0] a, input wire[3:0] b, input wire cin, output wire[3:0] cout, output wire[3:0] sum);
+    
+FullAdder FA0 (a[0], b[0], cin, cout[0], sum[0]);
+FullAdder FA1 (a[1], b[1], cout[0], cout[1], sum[1]);
+FullAdder FA2 (a[2], b[2], cout[1], cout[2], sum[2]);
+FullAdder FA3 (a[3], b[3], cout[2], cout[3], sum[3]);
+endmodule
+
+
+module FullAdder (input a, input b, input cin, output cout, output sum);
+  wire sum1, pcy1, pcy2;
+  HalfAdder HA1 (a, b, pcy1, sum1);
+  HalfAdder HA2 (cin, sum1, pcy2, sum);
+  assign cout = pcy1 | pcy2;
+  assign sum = sum1;
+endmodule
+
+module HalfAdder (input a, input b, output cout, output sum);
+  assign cout = a & b;
+  assign sum = a ^ b;
+endmodule
